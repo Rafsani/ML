@@ -54,9 +54,9 @@ dataset = pd.get_dummies(dataset)
 normalized_dataset = (dataset-dataset.min())/(dataset.max()-dataset.min())
 
 
-X =  dataset.values
+X =  normalized_dataset.values
 
-
+print(X)
 
 class LogisticRegression(object):
     def __init__(self,X,Y):
@@ -75,12 +75,12 @@ class LogisticRegression(object):
       #  print(yhat.shape)
         error = yhat - self.Y_data
        # print('err',error.shape)
-        cost = (-1/m)*np.sum(error**2)  # mean sqr error
+        cost = (1/m)*np.sum(error**2)  # mean sqr error
         # print(cost.shape)
         return cost
 
 
-    def train(self,alpha=0.000001,epochs=500,threshold = 0.5):
+    def train(self,alpha=0.1,epochs=1000,threshold = 0.5):
         m = self.X_data.shape[0]
         n = self.X_data.shape[1]
        
@@ -88,12 +88,13 @@ class LogisticRegression(object):
         weight = np.zeros(n,dtype=float,order='C')
         #print(weight)
         for i in range(epochs):
-            print('epoch :', i+1)
-            print(np.dot(self.X_data,weight))
-            hypothesis = self.Tanh(np.dot(self.X_data,weight))
+           # print('epoch :', i+1)
+            #print(np.dot(self.X_data,weight))
+            hypothesis = (self.Tanh(np.dot(self.X_data,weight)) +1 ) / 2
             #print(hypothesis)
+            #alpha = alpha/100.0
             cost = self.costf(hypothesis)
-            print('cost :', cost)
+            #print('cost :', cost)
             if np.abs(cost) < 0.1:
                 break
             gradient = (1/m) * np.dot(self.X_data.T,(self.Y_data - hypothesis)*(1-hypothesis**2))
@@ -104,7 +105,7 @@ class LogisticRegression(object):
     def predict(self,X_test,Y_test,weight,threshold=0.5):
         pre = np.ones((X_test.shape[0], 1))
         X_test = np.concatenate((pre, X_test), axis=1)
-        prediction = self.Tanh(np.dot(X_test, weight))
+        prediction = (self.Tanh(np.dot(X_test, weight)) +1)/ 2
         for i in range(prediction.shape[0]):
             if prediction[i] > threshold:
                 prediction[i] = 1
