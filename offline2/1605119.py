@@ -39,19 +39,18 @@ def loadparams():
             c += 1
 
 
-def stateProb():
+def stateProb(transitionMatrix):
     arr = np.array(transitionMatrix)
     S,U = eig(arr.T)
     stateProb = np.array(U[:, np.where(np.abs(S - 1.) < 1e-8)[0][0]].flat)
     stateProb = stateProb/np.sum(stateProb)
     return stateProb
 
-def EmissionProb():
+def EmissionProb(means, variences):
     emissionProb = []
     Std_dev = []
     for i in range(states):
         Std_dev.append(math.sqrt(variences[i]))
-
     for i in range(states):
         emissionProb.append(list(norm.pdf(data, loc=means[i], scale=Std_dev[i])))
     print(np.shape(emissionProb))
@@ -106,24 +105,14 @@ loadparams()
 # print(variences)
 # print(stateProb())
 # print(EmissionProb())
-startP= stateProb()
-emissionP = EmissionProb() 
+startP= stateProb(transitionMatrix)
+emissionP = EmissionProb(means, variences)
 print(Viterbi(data,[0,1],startP,transitionMatrix,emissionP))
 
 
 
 
-def backward():
-    global states
-    global variences
-    global transitionMatrix
-    global means
-    global data
-    global transitionMatrix
-    global means
-    global variences
-    global data
-    global states
+def backward(states, data, emissionP, transitionMatrix):
     beta = np.zeros((len(data), states))
     for i in range(states):
         beta[len(data) - 1][i] = 1
@@ -139,17 +128,7 @@ def backward():
 
 
 
-def forward():
-    global states
-    global variences
-    global transitionMatrix
-    global means
-    global data
-    global transitionMatrix
-    global means
-    global variences
-    global data
-    global states
+def forward(states, data, emissionP, transitionMatrix, startP):
     alpha = np.zeros((len(data), states))
     for i in range(states):
         alpha[0][i] = startP[i] * emissionP[i][0]
@@ -167,21 +146,13 @@ def forward():
 #print(forward())
 # print(backward())
 
-Alpha = forward()
-Beta = backward()
+Alpha = forward(states, data, emissionP, transitionMatrix, startP)
+Beta = backward(states, data, emissionP, transitionMatrix)
 
 
 forward_sink = np.sum(Alpha[len(data) - 1])
 
-def CalculatePi_star():
-    global states
-    global variences
-    global transitionMatrix
-    global means
-    global data
-    global Alpha
-    global Beta
-    global forward_sink
+def CalculatePi_star(states, Alpha, Beta, data,forward_sink):
     Pi_star = np.zeros((len(data), states))
     for i in range(len(data)):
         for j in range(states):
@@ -190,15 +161,7 @@ def CalculatePi_star():
     return Pi_star
 
 
-def CalculatePiStarStar():
-    global states
-    global variences
-    global transitionMatrix
-    global means
-    global data
-    global Alpha
-    global Beta
-    global forward_sink
+def CalculatePiStarStar(states,data,Alpha,Beta,transitionMatrix,emissionP,forward_sink):
     Pi_star_star = np.zeros((len(data) -1, states, states))
     for i in range(len(data) - 1):
         for j in range(states):
@@ -210,9 +173,66 @@ def CalculatePiStarStar():
 
 
 
-pistar = CalculatePi_star()
-pi2star = CalculatePiStarStar()
+pistar = CalculatePi_star(states, Alpha, Beta, data,forward_sink)
+pi2star = CalculatePiStarStar(states,data,Alpha,Beta,transitionMatrix,emissionP,forward_sink)
 
-print(pi2star)
+def updateTransitionMatrix(pi2starM):
+    global transitionMatrix
+    transitionMatrix = transitionMatrix
+    for i in range(states):
+        for j in range(states):
+            transitionMatrix[i][j] = np.sum(pi2starM[:,i,j])
+    
+    for i in range(states):
+        transitionMatrix[i] = transitionMatrix[i] / np.sum(transitionMatrix[i])
+
+    print(transitionMatrix)
+    print(np.shape(transitionMatrix))
+    return transitionMatrix
+
+
+def updateMeans(pistarM):
+    global means
+    means = means
+    print(means)
+    for i in range(states):
+        means[i] = np.sum(pistarM[:,i] * data) / np.sum(pistarM[:,i])
+    print(means)
+    return means
+
+def updateVariences(pistarM):
+    global variences
+    variences = variences
+    print(variences)
+    for i in range(states):
+        variences[i] = np.sum(pistarM[:,i] * (data - means[i]) ** 2) / np.sum(pistarM[:,i])
+    print(variences)
+    return variences
+
+
+
+
+def baum_welch(transitionMatrix, means, variences, data, states,emissionP,startP):
+    for i in range(5):
+        print("iteration: ", i)
+        print("transitionMatrix: ", transitionMatrix)
+        print("means: ", means)
+        print("variences: ", variences)
+        print("startP: ", startP)
+        print("\n")
+        Alpha = forward(states, data, emissionP, transitionMatrix, startP)
+        Beta = backward(states, data, emissionP, transitionMatrix)
+        forward_sink = np.sum(Alpha[len(data) - 1])
+        Pi_star = CalculatePi_star(states, Alpha, Beta, data,forward_sink)
+        pi2star = CalculatePiStarStar(states,data,Alpha,Beta,transitionMatrix,emissionP,forward_sink)
+        transitionMatrix = updateTransitionMatrix(pi2star)
+        startP = stateProb(transitionMatrix)
+        means = updateMeans(Pi_star)
+        variences = updateVariences(Pi_star)
+        emissionP = EmissionProb(means, variences)
+
+
+baum_welch(transitionMatrix, means, variences, data, states,emissionP,startP)
+#print(pi2star)
 
 
