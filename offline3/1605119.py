@@ -1,7 +1,8 @@
-from pyexpat import model
+
 import idx2numpy
 import numpy as np
 import sys 
+
 # Load the training data
 train_images = idx2numpy.convert_from_file('train-images.idx3-ubyte')
 train_labels = idx2numpy.convert_from_file('train-labels.idx1-ubyte')
@@ -32,6 +33,7 @@ class conv:
         self.output = None
         self.input = None
 
+    
     def pad(self,input):
         if self.padding == 0:
             return input
@@ -46,7 +48,7 @@ class conv:
             unpad_input = input[:,self.padding:-self.padding,self.padding:-self.padding,:]
             return unpad_input
 
-   
+    
     def forward(self,input):
         input = self.pad(input)
         self.input = input
@@ -252,11 +254,11 @@ def crossEntropy(output,target):
 
 
 
-my_yreal = train_labels[0:35]    ## No of Labels in Training Set
+# my_yreal = train_labels[0:35]    ## No of Labels in Training Set
 
-print("Yreal ", my_yreal.shape)
-Y_label = np.zeros((my_yreal.size, my_yreal.max()+1))
-Y_label[np.arange(my_yreal.size), my_yreal.ravel()] = 1
+# print("Yreal ", my_yreal.shape)
+# Y_label = np.zeros((my_yreal.size, my_yreal.max()+1))
+# Y_label[np.arange(my_yreal.size), my_yreal.ravel()] = 1
 
 
 # testconv = conv(6,5,1,2,1)
@@ -394,10 +396,11 @@ class Model:
                # print("Y_label  ",Y_label.shape," at " ,i)
                 out = self.forward(X_batch)
                 grad = self.backward(Y_label)
+            print("Training Done for epoch ",epoch)
             output1 = self.forward(X_valid)
             output2 = self.forward(X_test)
             print("Epoch ", epoch, " Loss ", crossEntropy(output1, Y_valid))
-            print("Epoch ",epoch," Accuracy ",accuracy(output2,Y_test))
+            print("Epoch ",epoch," Accuracy ",100 * accuracy(output2,Y_test))
             
     
 
@@ -407,15 +410,16 @@ class Model:
 # print( " dd ",x.shape)
 # x = model.backward(x)
 # print(x.shape)
-mytrain_images = train_images[0:5000]
-mytrain_labels = train_labels[0:5000]
+mytrain_images = train_images[0:1000]
+mytrain_labels = train_labels[0:1000]
 
-mytest_images = test_images[0:5000]
-mytest_labels = test_labels[0:5000]
+mytest_images = test_images[0:1000]
+mytest_labels = test_labels[0:1000]
 
 myvalid_images = train_images[5000:6000]
 myvalid_labels = train_labels[5000:6000]
 
 
 model = Model()
+print("Training Model...")
 model.train_model(mytrain_images,mytrain_labels,myvalid_images,myvalid_labels,mytest_images,mytest_labels,32,10,0.001)
